@@ -1,4 +1,4 @@
-# Zerops x PHP
+# Zerops x GO
 This is the most bare-bones example of GO app running on Zerops.
 
 ![go](https://github.com/zeropsio/recipe-shared-assets/blob/main/cover-go.png)
