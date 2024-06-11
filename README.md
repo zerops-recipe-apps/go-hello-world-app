@@ -27,14 +27,8 @@ Base of the recipe is ready for production, the difference comes down to:
 - Use highly available version of the PostgreSQL database (change *mode* from *NON_HA* to *HA* in recipe YAML, *db* service section)
 - Use at least two containers for the GO service to achieve high reliability and resilience (add *minContainers: 2* in recipe YAML, *api* service section)
 
-Further things to think about when running more complex, highly available PHP production apps on Zerops:
+Further things to think about when running more complex, highly available GO production apps on Zerops:
 
 - Containers are volatile - use Zerops object storage to store your files
 - Use Zerops Redis (KeyDB) for caching, storing sessions and pub/sub messaging
 - Use more advanced logging lib, such as [Logrus](https://github.com/sirupsen/logrus), [Zap](https://github.com/uber-go/zap) or [ZeroLog](https://github.com/rs/zerolog)
-
-
-
-
-
-
