@@ -4,7 +4,12 @@ zerops:
       base: go@1
       buildCommands:
         - go build -o app .
-      deploy: ./app
+      deployFiles: ./app
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 8080
+          path: /status
     run:
       base: go@1
       start: ./app
