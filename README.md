@@ -1,5 +1,5 @@
 # Zerops x GO
-This is the most bare-bones example of GO app running on [Zerops](https://zerops.io).
+This is the most bare-bones example of Go app running on [Zerops](https://zerops.io) — as few libraries as possible, just a simple endpoint with connnect, read and write to a Zerops PostgreSQL database.
 
 ![go](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/cover-go.png)
 
@@ -11,14 +11,16 @@ You can either click the deploy button to deploy directly on Zerops, or manually
 [![Deploy on Zerops](https://github.com/zeropsio/recipe-shared-assets/blob/main/deploy-button/green/deploy-button.svg)](https://app.zerops.io/recipe/go)
 
 <br/>
-<br/>
+
 
 ## Recipe features
-- **Golang v1.22.** on **Zerops GO** service
+- **Golang v1.22.** on a load balanced **Zerops Go** service
 - Zerops **PostgreSQL 16** service as database
 - Healthcheck setup example
 - Utilization of Zerops' built-in **environment variables** system
 - Utilization of Zerops' built-in **log management**
+
+<br/>
 
 ## Production vs. development
 
