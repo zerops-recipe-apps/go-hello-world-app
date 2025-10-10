@@ -1,41 +1,71 @@
-# Zerops x GO
-This is the most bare-bones example of Go app running on [Zerops](https://zerops.io) — as few libraries as possible, just a simple endpoint with connnect, read and write to a Zerops PostgreSQL database.
+<!-- #ZEROPS_REMOVE_START# -->
+# Go Hello World Recipe App
+Simple Go API with single endpoint that reads and writes to a PostgreSQL database. Used within [Go Hello World recipe](https://app.zerops.io/recipes/go-hello-world) for [Zerops](https://zerops.io) platform.
 
-![go](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/svg/cover-go.svg)
+⬇️ **Full recipe page and deploy with one-click**
 
-<br />
+[![Deploy on Zerops](https://github.com/zeropsio/recipe-shared-assets/blob/main/deploy-button/light/deploy-button.svg)](https://app.zerops.io/recipes/go-hello-world?environment=small-production)
 
-## Deploy on Zerops
-You can either click the deploy button to deploy directly on Zerops, or manually copy the [import yaml](https://github.com/zeropsio/recipe-go/blob/main/zerops-project-import.yml) to the import dialog in the Zerops app.
+![nestjs](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/svg/cover-go.svg)
 
-[![Deploy on Zerops](https://github.com/zeropsio/recipe-shared-assets/blob/main/deploy-button/green/deploy-button.svg)](https://app.zerops.io/recipe/go)
+## Integration Guide
+<!-- #ZEROPS_REMOVE_END# -->
 
-<br/>
+> [!TIP]
+> If you've deployed the recipe with one-click, it used [this repository](https://github.com/zerops-recipe-apps/go-hello-world-app) to deploy the app from. You can either use this repository as a template, or follow the guide on how to integrate similar setup to Zerops. If you want to more advanced examples, see all [Go recipes](https://app.zerops.io/recipes?lf=go) on Zerops.
 
+### 1. Adding `zerops.yaml`
+The main application configuration file you place at the root of your repository, it tells Zerops how to build, deploy and run your application.
 
-## Recipe features
-- **Golang v1.22.** on a load balanced **Zerops Go** service
-- Zerops **PostgreSQL 16** service as database
-- Healthcheck setup example
-- Utilization of Zerops' built-in **environment variables** system
-- Utilization of Zerops' built-in **log management**
+```yaml
+zerops:
+  # Defining base setup that is shared
+  # with both dev and prod setups.
+  - setup: base
+    run:
+      # First, we have to say in which base image we want to deploy our app.
+      # Since Go is compiled language that produces a binary,
+      # we can grab lightweight Linux distribution to run the binary in.
+      base: alpine@3.21
+      # Defining ports that can be accessed from outside the application container.
+      ports:
+        - port: 8080
+          # Our app is an HTTP API, mark the port as HTTP
+          # so we can possibly enable public HTTPS access.
+          httpSupport: true
+      # Adding environment variables.
+      # Note that we reference database service environment variables,
+      # that are automatically generated and accessible for all PostgreSQL services.
+      envVariables:
+        DB_NAME: db
+        DB_HOST: ${db_hostname}
+        # For example, this 'DB_PORT' env will resolve to 6543 in case of a PostgreSQL database.
+        DB_PORT: ${db_port}
+        DB_USER: ${db_user}
+        DB_PASS: ${db_password}
+      # This is how we execute our app process.
+      # We build the 'app' artifact below. Simply exec it here.
+      start: ./app
+    
+  # Extending the 'base' setup, that contains the 'run' section.
+  - setup: dev
+    extends: base
+    build:
+      # Using Go build base image, that has Go (with build tools) pre-installed.
+      base: go@1
+      buildCommands:
+        # So we can just simply build the app using the 'go' command.
+        - go build -o app main.go
+      # All we need to deploy to runtime containers is the built 'app' binary.
+      deployFiles: ./app
 
-<br/>
-
-## Production vs. development
-
-Base of the recipe is ready for production, the difference comes down to:
-
-- Use highly available version of the PostgreSQL database (change `mode` from `NON_HA` to `HA` in recipe YAML, `db` service section)
-- Use at least two containers for the GO service to achieve high reliability and resilience (add `minContainers: 2` in recipe YAML, `api` service section)
-
-Further things to think about when running more complex, highly available GO production apps on Zerops:
-
-- Containers are volatile - use Zerops object storage to store your files
-- Use Zerops Redis (KeyDB) for caching, storing sessions and pub/sub messaging
-- Use more advanced logging lib, such as [Logrus](https://github.com/sirupsen/logrus), [Zap](https://github.com/uber-go/zap) or [ZeroLog](https://github.com/rs/zerolog)
-
-<br/>
-<br/>
-
-Need help setting your project up? Join [Zerops Discord community](https://discord.com/invite/WDvCZ54).
+  - setup: prod
+    extends: base
+    build:
+      base: go@1
+      buildCommands:
+        # Specifying build args for optimized binary build.
+        # Everything else is the same.
+        - go build -ldflags="-s -w" -trimpath -o app main.go
+      deployFiles: ./app
+```

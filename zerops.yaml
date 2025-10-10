@@ -1,0 +1,39 @@
+zerops:
+  - setup: base
+    # deploy:
+    #   readinessCheck:
+    #     httpGet:
+    #       port: 8080
+    #       path: /status
+    run:
+      base: alpine@3.21
+      start: ./app
+      ports:
+        - port: 8080
+          httpSupport: true
+      envVariables:
+        DB_NAME: db
+        DB_HOST: ${db_hostname}
+        DB_PORT: ${db_port}
+        DB_USER: ${db_user}
+        DB_PASS: ${db_password}
+      # healthCheck:
+      #   httpGet:
+      #     port: 8080
+      #     path: /status
+      
+  - setup: dev
+    extends: base
+    build:
+      base: go@1
+      buildCommands:
+        - go build -o app main.go
+      deployFiles: ./app
+
+  - setup: prod
+    extends: base
+    build:
+      base: go@1
+      buildCommands:
+        - go build -ldflags="-s -w" -trimpath -o app main.go
+      deployFiles: ./app
