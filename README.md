@@ -19,16 +19,26 @@ The main application configuration file you place at the root of your repository
 
 ```yaml
 zerops:
-  - setup: dev
+  # Defining production setup, that will run the built application.
+  - setup: prod
+    build:
+      # Using Go build base image, that has Go (with build tools) pre-installed.
+      base: go@1
+      buildCommands:
+        # So we can just simply build the app using the 'go' command.
+        - go build -o app main.go
+      # All we need to deploy to runtime containers is the built 'app' binary.
+      # Package only it.
+      deployFiles: ./app
     run:
-      # First, we have to say in which base image we want to deploy our app.
-      # Since Go is compiled language that produces a binary,
-      # we can grab lightweight Linux distribution to run the binary in.
+      # Now, we have to say into which base image we want to deploy our app.
+      # Since Go is a compiled language that produces a binary,
+      # we can grab a lightweight Linux distribution to run the binary in.
       base: alpine@3.21
       # Defining ports that can be accessed from outside the application container.
       ports:
         - port: 8080
-          # Our app is an HTTP API, mark the port as HTTP
+          # Our app is an HTTP API. Mark the port as HTTP
           # so we can possibly enable public HTTPS access.
           httpSupport: true
       # Adding environment variables.
@@ -42,29 +52,34 @@ zerops:
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
       # This is how we execute our app process.
-      # We build the 'app' artifact below. Simply exec it here.
+      # We build the 'app' artifact above.
       start: ./app
-    
-  # Extending the 'base' setup, that contains the 'run' section.
+  
+  # Dev setup is for remote development or AI agent use-cases.
   - setup: dev
-    extends: base
-    build:
-      # Using Go build base image, that has Go (with build tools) pre-installed.
-      base: go@1
-      buildCommands:
-        # So we can just simply build the app using the 'go' command.
-        - go build -o app main.go
-      # All we need to deploy to runtime containers is the built 'app' binary.
-      deployFiles: ./app
-
-  - setup: prod
-    extends: base
     build:
       base: go@1
-      buildCommands:
-        # So we can just simply build the app using the 'go' command.
-        # Specifying build args for optimized binary build.
-        # Everything else is the same.
-        - go build -ldflags="-s -w" -trimpath -o app main.go
-      deployFiles: ./app
+      # Start by packaging all the application source code
+      # in the repository, so we can work on it inside the runtime container.
+      # No build steps are needed, since we only care about source code.
+      deployFiles: .
+    run:
+      base: go@1
+      # We would also like to test and try the app from the outside,
+      # make the development port accessible.
+      ports:
+        - port: 8080
+          httpSupport: true
+      # Use the same environment variables for development,
+      # they will be available in the environment of spawned shells, IDEs or AI agents.
+      envVariables:
+        DB_NAME: db
+        DB_HOST: ${db_hostname}
+        DB_PORT: ${db_port}
+        DB_USER: ${db_user}
+        DB_PASS: ${db_password}
+      # We don't want to run anything - we will execute our
+      # build, test and run commands manually inside the container.
+      # Start command will be optional in the future. Use noop dummy command.
+      start: zsc noop --silent
 ```
