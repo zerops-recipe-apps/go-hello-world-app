@@ -19,9 +19,7 @@ The main application configuration file you place at the root of your repository
 
 ```yaml
 zerops:
-  # Defining base setup that is shared
-  # with both dev and prod setups.
-  - setup: base
+  - setup: dev
     run:
       # First, we have to say in which base image we want to deploy our app.
       # Since Go is compiled language that produces a binary,
@@ -64,6 +62,7 @@ zerops:
     build:
       base: go@1
       buildCommands:
+        # So we can just simply build the app using the 'go' command.
         # Specifying build args for optimized binary build.
         # Everything else is the same.
         - go build -ldflags="-s -w" -trimpath -o app main.go

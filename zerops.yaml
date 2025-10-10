@@ -1,13 +1,44 @@
 zerops:
-  - setup: base
-    # deploy:
-    #   readinessCheck:
-    #     httpGet:
-    #       port: 8080
-    #       path: /status
+  
+  - setup: prod
+    build:
+      # Using Go build base image, that has Go (with build tools) pre-installed.
+      base: go@1
+      buildCommands:
+        # So we can just simply build the app using the 'go' command.
+        - go build -o app main.go
+      deployFiles: ./app
     run:
+      # First, we have to say in which base image we want to deploy our app.
+      # Since Go is compiled language that produces a binary,
+      # we can grab lightweight Linux distribution to run the binary in.
       base: alpine@3.21
+      # Defining ports that can be accessed from outside the application container.
+      ports:
+        - port: 8080
+          # Our app is an HTTP API. Mark the port as HTTP
+          # so we can possibly enable public HTTPS access.
+          httpSupport: true
+      # Adding environment variables.
+      # Note that we reference database service environment variables,
+      # that are automatically generated and accessible for all PostgreSQL services.
+      envVariables:
+        DB_NAME: db
+        DB_HOST: ${db_hostname}
+        # For example, this 'DB_PORT' env will resolve to 6543 in case of a PostgreSQL database.
+        DB_PORT: ${db_port}
+        DB_USER: ${db_user}
+        DB_PASS: ${db_password}
+      # This is how we execute our app process.
+      # We build the 'app' artifact above. Simply exec it here.
       start: ./app
+    
+  - setup: dev
+    build:
+      base: go@1
+      deployFiles: .
+    run:
+      base: go@1
       ports:
         - port: 8080
           httpSupport: true
@@ -17,23 +48,4 @@ zerops:
         DB_PORT: ${db_port}
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
-      # healthCheck:
-      #   httpGet:
-      #     port: 8080
-      #     path: /status
-      
-  - setup: dev
-    extends: base
-    build:
-      base: go@1
-      buildCommands:
-        - go build -o app main.go
-      deployFiles: ./app
-
-  - setup: prod
-    extends: base
-    build:
-      base: go@1
-      buildCommands:
-        - go build -ldflags="-s -w" -trimpath -o app main.go
-      deployFiles: ./app
+      start: zsc noop --silent    
