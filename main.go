@@ -12,9 +12,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.elastic.co/apm/module/apmhttp/v2"
+	"go.elastic.co/apm/module/apmsql/v2"
+	_ "go.elastic.co/apm/module/apmsql/v2/pq"
+	"go.elastic.co/apm/v2"
 )
 
 var db *sql.DB
+
+var (
+	requestsTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "api_requests_total",
+		Help: "Total number of requests since beginning of the process.",
+	})
+)
 
 func init() {
 	_ = godotenv.Load()
@@ -28,7 +42,8 @@ func init() {
 	)
 
 	var errDB error
-	db, errDB = sql.Open("postgres", connStr)
+	// Use apmsql wrapper for database connection to enable APM tracing
+	db, errDB = apmsql.Open("postgres", connStr)
 	if errDB != nil {
 		log.Fatalf("Failed to connect to database: %v", errDB)
 	}
@@ -37,11 +52,15 @@ func init() {
 	if errTable != nil {
 		log.Fatalf("Failed to ensure table exists: %v", errTable)
 	}
+
+	// Register build info collector for basic system metrics
+	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
 
 func main() {
 	http.HandleFunc("/", addEntry)
 	http.HandleFunc("/status", statusCheck)
+	http.Handle("/metrics", promhttp.Handler())
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -49,10 +68,20 @@ func main() {
 	}
 	log.Printf("Server running on http://localhost:%s\n", port)
 
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// Wrap HTTP handler with Elastic APM middleware
+	handler := apmhttp.Wrap(http.DefaultServeMux)
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func addEntry(w http.ResponseWriter, r *http.Request) {
+	requestsTotal.Inc()
+
+	// Get APM transaction from context for custom instrumentation
+	tx := apm.TransactionFromContext(r.Context())
+	if tx != nil {
+		tx.Context.SetLabel("handler", "addEntry")
+	}
+
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -66,6 +95,10 @@ func addEntry(w http.ResponseWriter, r *http.Request) {
 	randomData := uuid.New().String()
 	_, err := db.Exec(`INSERT INTO entries(data) VALUES ($1)`, randomData)
 	if err != nil {
+		// Report error to APM
+		if tx != nil {
+			apm.CaptureError(r.Context(), err).Send()
+		}
 		http.Error(w, "Failed to insert entry", http.StatusInternalServerError)
 		return
 	}
@@ -73,6 +106,10 @@ func addEntry(w http.ResponseWriter, r *http.Request) {
 	var count int
 	err = db.QueryRow(`SELECT COUNT(*) FROM entries`).Scan(&count)
 	if err != nil {
+		// Report error to APM
+		if tx != nil {
+			apm.CaptureError(r.Context(), err).Send()
+		}
 		http.Error(w, "Failed to count entries", http.StatusInternalServerError)
 		return
 	}
@@ -99,6 +136,8 @@ func addEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func statusCheck(w http.ResponseWriter, r *http.Request) {
+	requestsTotal.Inc()
+
 	w.Header().Set("Content-Type", "application/json")
 	status := map[string]string{"status": "UP"}
 	if err := json.NewEncoder(w).Encode(status); err != nil {

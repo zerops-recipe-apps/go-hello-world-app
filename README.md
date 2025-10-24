@@ -83,3 +83,12 @@ zerops:
       # Start command will be optional in the future. Use noop dummy command.
       start: zsc noop --silent
 ```
+
+### 2. Adding Metrics Envs
+```
+ELASTIC_APM_ACTIVE=true
+ELASTIC_APM_SERVICE_NAME=recipe-go
+ELASTIC_APM_SERVER_URL=https://apmserver.url.copy.from.gui
+ELASTIC_APM_SECRET_TOKEN=SECRET_TOKEN_COPY_FROM_GUI
+ZEROPS_PROMETHEUS_PORT=8080
+```
