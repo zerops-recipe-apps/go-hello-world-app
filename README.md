@@ -1,6 +1,6 @@
 <!-- #ZEROPS_REMOVE_START# -->
 # Go Hello World Recipe App
-Simple Go API with single endpoint that reads and writes to a PostgreSQL database. Used within [Go Hello World recipe](https://app.zerops.io/recipes/go-hello-world) for [Zerops](https://zerops.io) platform.
+Simple Go API with single endpoint that reads from and writes to a PostgreSQL database. Used within [Go Hello World recipe](https://app.zerops.io/recipes/go-hello-world) for [Zerops](https://zerops.io) platform.
 
 ⬇️ **Full recipe page and deploy with one-click**
 
