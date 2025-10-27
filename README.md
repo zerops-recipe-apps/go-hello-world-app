@@ -6,7 +6,7 @@ Simple Go API with single endpoint that reads from and writes to a PostgreSQL da
 
 [![Deploy on Zerops](https://github.com/zeropsio/recipe-shared-assets/blob/main/deploy-button/light/deploy-button.svg)](https://app.zerops.io/recipes/go-hello-world?environment=small-production)
 
-![nestjs](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/svg/cover-go.svg)
+![Go cover](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/svg/cover-go.svg)
 
 ## Integration Guide
 <!-- #ZEROPS_REMOVE_END# -->
@@ -30,6 +30,9 @@ zerops:
       # All we need to deploy to runtime containers is the built 'app' binary.
       # Package only it.
       deployFiles: ./app
+      # Speed up builds by caching GOCACHE and GOMODCACHE directories,
+      # that are located outside the build source directory.
+      cache: true
     run:
       # Now, we have to say into which base image we want to deploy our app.
       # Since Go is a compiled language that produces a binary,
@@ -64,6 +67,9 @@ zerops:
       # No build steps are needed, since we only care about source code.
       deployFiles: .
     run:
+      # Choosing Ubuntu as OS for development, as it has
+      # richer tool-set then Alpine. 
+      os: ubuntu
       base: go@1
       # We would also like to test and try the app from the outside,
       # make the development port accessible.
