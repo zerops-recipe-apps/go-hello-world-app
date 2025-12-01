@@ -1,4 +1,3 @@
-<!-- #ZEROPS_REMOVE_START# -->
 # Go Hello World Recipe App
 Simple Go API with single endpoint that reads from and writes to a PostgreSQL database. Used within [Go Hello World recipe](https://app.zerops.io/recipes/go-hello-world) for [Zerops](https://zerops.io) platform.
 
@@ -9,7 +8,8 @@ Simple Go API with single endpoint that reads from and writes to a PostgreSQL da
 ![Go cover](https://github.com/zeropsio/recipe-shared-assets/blob/main/covers/svg/cover-go.svg)
 
 ## Integration Guide
-<!-- #ZEROPS_REMOVE_END# -->
+
+<!-- #ZEROPS_EXTRACT_START:integration-guide# -->
 
 > [!TIP]
 > If you've deployed the recipe with one-click, it used [this repository](https://github.com/zerops-recipe-apps/go-hello-world-app) to deploy the app from. You can either use this repository as a template, or follow the guide on how to integrate similar setup to Zerops. If you want to more advanced examples, see all [Go recipes](https://app.zerops.io/recipes?lf=go) on Zerops.
@@ -89,3 +89,5 @@ zerops:
       # Start command will be optional in the future. Use noop dummy command.
       start: zsc noop --silent
 ```
+
+<!-- #ZEROPS_EXTRACT_END:integration-guide# -->
