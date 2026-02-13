@@ -11,9 +11,6 @@ Simple Go API with single endpoint that reads from and writes to a PostgreSQL da
 
 <!-- #ZEROPS_EXTRACT_START:integration-guide# -->
 
-> [!TIP]
-> If you've deployed the recipe with one-click, it used [this repository](https://github.com/zerops-recipe-apps/go-hello-world-app) to deploy the app from. You can either use this repository as a template, or follow the guide on how to integrate similar setup to Zerops. If you want to more advanced examples, see all [Go recipes](https://app.zerops.io/recipes?lf=go) on Zerops.
-
 ### 1. Adding `zerops.yaml`
 The main application configuration file you place at the root of your repository, it tells Zerops how to build, deploy and run your application.
 
