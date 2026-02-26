@@ -1,70 +1,107 @@
+# Production setup — compile both binaries, deploy minimal
+# static artifacts. Development setup — deploy full source
+# for SSH-driven development without a pre-build step.
 zerops:
-  # Defining production setup, that will run the built application.
   - setup: prod
     build:
-      # Using Go build base image, that has Go (with build tools) pre-installed.
-      base: go@1
+      base: go@1.22
+      # CGO_ENABLED=0 produces a fully static binary — no C compiler
+      # or system libraries linked at runtime. lib/pq is pure Go
+      # so this is safe and results in a portable artifact.
+      envVariables:
+        CGO_ENABLED: "0"
       buildCommands:
-        # So we can just simply build the app using the 'go' command.
-        - go build -o app main.go
-      # All we need to deploy to runtime containers is the built 'app' binary.
-      # Package only it.
-      deployFiles: ./app
-      # Speed up builds by caching GOCACHE and GOMODCACHE directories,
-      # that are located outside the build source directory.
+        # Download all module dependencies, then build both the
+        # app server and the database migration binary.
+        - go mod download
+        - go build -o app .
+        - go build -o migrate ./cmd/migrate
+      deployFiles:
+        # Deploy only the compiled binaries — no source or toolchain
+        # in the runtime image, keeping the artifact minimal.
+        - ./app
+        - ./migrate
+      # cache: true snapshots the global GOMODCACHE (system-level
+      # directory), avoiding a full re-download on each build.
+      # Not combined with folder-level cache — only one strategy
+      # applies per build.
       cache: true
+
+    # Readiness check — verifies each new container responds before
+    # the project balancer routes production traffic to it,
+    # enabling zero-downtime deploys.
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 8080
+          path: /
+
     run:
-      # Now, we have to say into which base image we want to deploy our app.
-      # Since Go is a compiled language that produces a binary,
-      # we can grab a lightweight Linux distribution to run the binary in.
-      base: alpine@3.21
-      # Defining ports that can be accessed from outside the application container.
+      # go@1.22 runtime runs the compiled static binary.
+      base: go@1.22
+      # Run migration once per deploy via zsc execOnce. Placing it
+      # here in initCommands — not buildCommands — ensures the
+      # schema and the newly deployed binary are always in sync.
+      # execOnce prevents parallel execution across containers.
+      initCommands:
+        - zsc execOnce ${appVersionId} -- ./migrate
       ports:
         - port: 8080
-          # Our app is an HTTP API. Mark the port as HTTP
-          # so we can possibly enable public HTTPS access.
           httpSupport: true
-      # Adding environment variables.
-      # Note that we reference database service environment variables,
-      # that are automatically generated and accessible for all PostgreSQL services.
       envVariables:
-        DB_NAME: db
+        # Zerops generates db_hostname, db_port, db_user, and
+        # db_password automatically for the 'db' service.
+        # Reference them via ${hostname_key} syntax.
         DB_HOST: ${db_hostname}
-        # For example, this 'DB_PORT' env will resolve to 6543 in case of a PostgreSQL database.
         DB_PORT: ${db_port}
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
-      # This is how we execute our app process.
-      # We build the 'app' artifact above.
+        # DB_NAME matches the Zerops-generated database name
+        # (always the service hostname).
+        DB_NAME: db
       start: ./app
-  
-  # Dev setup is for remote development or AI agent use-cases.
+
   - setup: dev
+    # Development workspace — source deployed as-is, developer
+    # drives compilation and the server via SSH.
     build:
-      base: go@1
-      # Start by packaging all the application source code
-      # in the repository, so we can work on it inside the runtime container.
-      # No build steps are needed, since we only care about source code.
-      deployFiles: .
+      base: go@1.22
+      buildCommands:
+        # Download dependencies into the global GOMODCACHE so the
+        # build container image snapshot (cache: true) includes
+        # them — avoids a network fetch on every build.
+        - go mod download
+      deployFiles:
+        # Deploy the full source tree so the developer has
+        # everything available immediately after SSH.
+        - ./
+      # cache: true snapshots the entire build container image,
+      # preserving the global GOMODCACHE across builds.
+      cache: true
+
     run:
-      # Choosing Ubuntu as OS for development, as it has
-      # richer tool-set then Alpine. 
-      os: ubuntu
-      base: go@1
-      # We would also like to test and try the app from the outside,
-      # make the development port accessible.
+      # go@1.22 provides the full Go toolchain for SSH-driven
+      # development — compile, run, and test without additional
+      # installation.
+      base: go@1.22
+      # Migration compiles and runs once per deploy (one-time cost,
+      # guarded by execOnce). Database is ready when the developer
+      # SSHs in — no manual migration step needed.
+      initCommands:
+        - zsc execOnce ${appVersionId} -- go run cmd/migrate/main.go
       ports:
         - port: 8080
           httpSupport: true
-      # Use the same environment variables for development,
-      # they will be available in the environment of spawned shells, IDEs or AI agents.
       envVariables:
-        DB_NAME: db
         DB_HOST: ${db_hostname}
         DB_PORT: ${db_port}
         DB_USER: ${db_user}
         DB_PASS: ${db_password}
-      # We don't want to run anything - we will execute our
-      # build, test and run commands manually inside the container.
-      # Start command will be optional in the future. Use noop dummy command.
+        DB_NAME: db
+        # HOME is required — Zerops runtime processes don't inherit
+        # it by default, and Go uses it to locate GOPATH and GOCACHE
+        # (/home/zerops/go and /home/zerops/.cache/go-build).
+        HOME: /home/zerops
+      # Zerops starts nothing — container idles, developer runs
+      # 'go run .' or 'go build && ./app' via SSH.
       start: zsc noop --silent
