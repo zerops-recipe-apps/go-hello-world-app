@@ -4,7 +4,7 @@
 zerops:
   - setup: prod
     build:
-      base: go@1.23
+      base: go@1.22
       # CGO_ENABLED=0 produces a fully static binary — no C compiler
       # or system libraries linked at runtime. lib/pq is pure Go
       # so this is safe and results in a portable artifact.
@@ -37,8 +37,8 @@ zerops:
           path: /
 
     run:
-      # go@1.23 runtime runs the compiled static binary.
-      base: go@1.23
+      # go@1.22 runtime runs the compiled static binary.
+      base: go@1.22
       # Run migration once per deploy via zsc execOnce. Placing it
       # here in initCommands — not buildCommands — ensures the
       # schema and the newly deployed binary are always in sync.
@@ -65,7 +65,7 @@ zerops:
     # Development workspace — source deployed as-is, developer
     # drives compilation and the server via SSH.
     build:
-      base: go@1.23
+      base: go@1.22
       buildCommands:
         # Download dependencies into the global GOMODCACHE so the
         # build container image snapshot (cache: true) includes
@@ -80,10 +80,10 @@ zerops:
       cache: true
 
     run:
-      # go@1.23 provides the full Go toolchain for SSH-driven
+      # go@1.22 provides the full Go toolchain for SSH-driven
       # development — compile, run, and test without additional
       # installation.
-      base: go@1.23
+      base: go@1.22
       # Migration compiles and runs once per deploy (one-time cost,
       # guarded by execOnce). Database is ready when the developer
       # SSHs in — no manual migration step needed.
