@@ -6,7 +6,7 @@ Minimal Go HTTP server on stdlib + `lib/pq` that connects to PostgreSQL, runs a 
 
 - HTTP port: `8080`
 - Siblings: `db` (PostgreSQL) — env: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`
-- Runtime base: `go@1.23`
+- Runtime base: `go@1.22`
 
 ## Zerops dev
 
